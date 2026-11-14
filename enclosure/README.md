@@ -47,8 +47,9 @@ to adjust are at the top of the `.scad` file:
   female headers including the USB socket)
 * `button_top_z` – tactile plunger height (13 mm switches, measured)
 * `dc_jack`, `tip_jack` – notch position, width and height for the jacks
-* `grip_d`, `coupler_d` – grip sleeve of the RT tip and the cable coupler on
-  its plug; the flared saddles also take slightly thinner parts
+* `grip_d` – grip sleeve of the RT tip; the coupler saddle uses the same
+  opening as the power jack notch (`coupler_d`), the flared saddles also take
+  slightly thinner parts
 
 The design assumes the LM7805 is not fitted (12 V supply, SJ1 bridged).
 

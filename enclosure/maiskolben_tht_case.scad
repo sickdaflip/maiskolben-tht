@@ -75,7 +75,7 @@ holder = true;              // adds the dovetail channel to the base
 // sits under the black sleeve, the rear saddle under the coupler; cone and
 // tip point backwards into free air behind the station.
 grip_d = 15.0;              // black sleeve of the RT tip (13.5-16 mm, tapered)
-coupler_d = 9.0;            // cable coupler on the 3.5 mm plug (measure yours)
+coupler_d = dc_jack[1] - 1;  // cable coupler: same opening as the power jack notch
 holder_offset = 26;         // case wall to iron axis
 holder_axis_z = 42;         // iron axis height above the table
 holder_saddles = [38, 82];  // world Y: coupler saddle, grip saddle (sleeve center)
