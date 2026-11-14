@@ -442,7 +442,7 @@ module cap(kind) {
 		}
 		translate([0, 0, -eps]) cylinder(d = plunger_d + 0.3, h = socket_depth + eps);
 		if (kind > 0)
-			translate([0, 0, cap_len - 0.6]) linear_extrude(1) symbol(kind);
+			translate([0, 0, cap_len - 0.6]) linear_extrude(1) scale(0.85) symbol(kind);  // stays clear of the D-flat
 	}
 }
 

@@ -30,6 +30,10 @@ Outside dimensions: 82 × 93 mm footprint, about 55 mm high at the back.
 | `stl/maiskolben_tht_holder.stl` | as exported | fits left and right |
 | `stl/maiskolben_tht_fitcheck.stl` | flat | 1.2 mm slice of the lid top |
 
+`maiskolben_tht_enclosure.3mf` contains all four parts in print orientation
+on one plate (171 × 165 mm, fits every Bambu Lab printer including the
+A1 mini): open it in Bambu Studio, pick the filament, slice and print.
+
 PETG or ASA recommended, 0.2 mm layers, 3 perimeters, 20 % infill.
 No screws needed; optional: 6 × self-adhesive rubber feet up to 10 mm
 (4 under the base, 2 under the holder so both stand at the same height).
