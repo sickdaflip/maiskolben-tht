@@ -22,10 +22,10 @@
 #ifndef TFT_INVERT
 #define TFT_INVERT 0
 #endif
-// Memory access control for landscape mode (MY | MV). The v3.1 firmware used
-// the same orientation. Try 0x60 if the image is upside down.
+// Memory access control for landscape mode (MX | MV), verified on the
+// Maiskolben THT. 0xA0 (MY | MV) gives the image rotated by 180 degrees.
 #ifndef TFT_MADCTL
-#define TFT_MADCTL 0xA0
+#define TFT_MADCTL 0x60
 #endif
 
 namespace Tft {

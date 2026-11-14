@@ -9,7 +9,7 @@
 #include <Arduino.h>
 
 #define FW_NAME    "Maiskolben"
-#define FW_VERSION "4.0.0"
+#define FW_VERSION "4.0.1"
 
 // ---------------------------------------------------------------------------
 // Pin map (identical to the original v3.1 firmware / THT schematic)
