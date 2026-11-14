@@ -22,7 +22,7 @@ pcb_holes = [[3.175, 4.445], [69.064, 4.445], [3.175, 76.325], [69.064, 76.325]]
 display_center = [33.6, 37.4];  // active area center (board coordinates)
 display_active = [35.04, 28.03];
 display_top_z = 12.5;           // display glass surface
-button_top_z = 12.0;            // tactile plunger top (12 mm switches)
+button_top_z = 13.0;            // tactile plunger top (measured: 13 mm switches)
 inner_h = 15.0;                 // free height under the lid (Nano on headers)
 
 /* [Buttons and LED] */

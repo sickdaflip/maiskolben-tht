@@ -37,7 +37,7 @@ to adjust are at the top of the `.scad` file:
 * `display_center` – active area center in board coordinates
 * `inner_h` – free height under the lid (default 15 mm, enough for a Nano on
   female headers including the USB socket)
-* `button_top_z` – tactile plunger height (12 mm switches)
+* `button_top_z` – tactile plunger height (13 mm switches, measured)
 * `dc_jack`, `tip_jack` – notch position, width and height for the jacks
 
 The design assumes the LM7805 is not fitted (12 V supply, SJ1 bridged).
