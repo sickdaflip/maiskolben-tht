@@ -6,11 +6,12 @@
 //              hold the PCB, a dovetail channel underneath takes the holder
 //   * lid    - frames the display, guides the caps and snaps onto the base
 //              with four hooks; its bosses clamp the PCB onto the pins
-//   * holder - slides into the dovetail channel from the left or right side
+//   * holder - one part for both sides: slides into the dovetail channel from
+//              the right, or turned by 180 degrees from the left
 //
 // Render a single part: openscad -D 'part="lid"' -o lid.stl maiskolben_tht_case.scad
-// Parts: "assembly", "exploded", "lid", "base", "caps", "fitcheck",
-//        "holder_right", "holder_left"
+// Parts: "assembly", "exploded", "bottom", "plate", "lid", "base", "caps",
+//        "fitcheck", "holder"
 
 part = "assembly";
 
@@ -71,21 +72,22 @@ foot_depth = 1.0;
 
 /* [Iron holder, slides in from the left or right] */
 holder = true;              // adds the dovetail channel to the base
-// Weller RT tip with a 3.5 mm cable coupler on its plug. The grip saddle
-// sits under the black sleeve, the rear saddle under the coupler; cone and
-// tip point backwards into free air behind the station.
+// Weller RT tip with a 3.5 mm cable coupler on its plug. One saddle sits
+// under the black sleeve, the other under the coupler; cone and tip point
+// backwards into free air behind the station. The holder is symmetric about
+// the channel, so the same part works on both sides.
 grip_d = 15.0;              // black sleeve of the RT tip (13.5-16 mm, tapered)
-coupler_d = dc_jack[1] - 1;  // cable coupler: same opening as the power jack notch
 holder_offset = 26;         // case wall to iron axis
 holder_axis_z = 42;         // iron axis height above the table
-holder_saddles = [38, 82];  // world Y: coupler saddle, grip saddle (sleeve center)
+saddle_spacing = 44;        // coupler center to sleeve center
 holder_plate_t = 4;
 holder_post_t = 8;
-dove_y = 46;                // channel center (world Y)
+dove_y = 60;                // channel center (world Y)
 dove_w = [16, 22];          // width at the bottom face / at the channel ceiling
 dove_h = 4;
 dove_clr = 0.25;
 tongue_len = 46;            // how far the tongue reaches under the base
+holder_saddles = [dove_y - saddle_spacing / 2, dove_y + saddle_spacing / 2];
 
 /* [Button caps] */
 cap_d = 7.0;
@@ -298,7 +300,8 @@ module base() {
 // ---------------------------------------------------------------------------
 // Iron holder: a dovetail tongue slides into the channel under the base,
 // the grip rests in two saddles and the hot tip points backwards into free
-// air behind the station. Built for the right side; holder_left mirrors it.
+// air behind the station. Symmetric about the channel: turn it by 180
+// degrees to use it on the left side.
 // ---------------------------------------------------------------------------
 module saddle(y, d) {
 	cx = out_x1 + holder_offset;
@@ -343,23 +346,18 @@ module tongue() {
 
 module holder_part() {
 	y0 = holder_saddles[0] - 10;
-	y1 = holder_saddles[1] + 8;
+	y1 = holder_saddles[1] + 10;
 	x1 = out_x1 + holder_offset + grip_d / 2 + 12;
 	difference() {
 		union() {
 			linear_extrude(holder_plate_t) rrect(out_x1 + 0.5, y0, x1, y1, 4);
 			tongue();
-			saddle(holder_saddles[0], coupler_d);
-			saddle(holder_saddles[1], grip_d);
+			for (y = holder_saddles) saddle(y, grip_d);
 		}
 		// Rubber feet, same as under the base
 		for (y = [y0 + 12, y1 - 12])
 			translate([(out_x1 + x1) / 2 + 6, y, -1]) cylinder(d = foot_d, h = foot_depth + 1);
 	}
-}
-
-module holder_left() {
-	translate([out_x0 + out_x1, 0, 0]) mirror([1, 0, 0]) holder_part();
 }
 
 // Weller RT tip with cable coupler, for the assembly views only.
@@ -373,7 +371,7 @@ module iron_dummy() {
 	translate([out_x1 + holder_offset, 0, holder_axis_z]) rotate([-90, 0, 0]) {
 		// Cable and coupler
 		color("#27272a") translate([0, 0, sleeve_rear - 11.6 - 25 - 60]) cylinder(d = 4, h = 62);
-		color("#3f3f46") translate([0, 0, sleeve_rear - 11.6 - 25]) cylinder(d = coupler_d, h = 25);
+		color("#3f3f46") translate([0, 0, sleeve_rear - 11.6 - 25]) cylinder(d = 10, h = 25);
 		// Ferrule
 		color(nickel) translate([0, 0, sleeve_rear - 11.6]) cylinder(d = 9.7, h = 11.6);
 		// Ribbed grip sleeve, tapered towards the plug
@@ -496,5 +494,4 @@ else if (part == "bottom") {  // preview: holder half pulled out to show the cha
 	to_world() color("#334155") lid();
 	translate([28, 0, 0]) { color("#cbd5e1") holder_part(); iron_dummy(); }
 }
-else if (part == "holder_right") translate([-out_x1 + tongue_len, 0, 0]) holder_part();
-else if (part == "holder_left") translate([-out_x0 - tongue_len, 0, 0]) holder_left();
+else if (part == "holder") translate([-out_x1 + tongue_len, 0, 0]) holder_part();
