@@ -8,7 +8,7 @@
 // mounting holes into pilot holes in the lid bosses.
 //
 // Render a single part: openscad -D 'part="lid"' -o lid.stl maiskolben_tht_case.scad
-// Parts: "assembly", "exploded", "lid", "base", "caps", "fitcheck"
+// Parts: "assembly", "exploded", "lid", "base", "caps", "fitcheck", "holder"
 
 part = "assembly";
 
@@ -64,6 +64,21 @@ seat_below_pcb = 6.4; // screw head seat, gives M3x16
 foot_d = 10.5;        // self-adhesive rubber feet
 foot_depth = 1.0;
 
+/* [Iron holder on the right side] */
+holder = true;              // adds mounting holes and nut pockets to the base
+iron_d = 14;                // grip diameter of the handpiece (measure yours)
+holder_offset = 26;         // case wall to iron axis
+holder_axis_z = 42;         // iron axis height above the table
+holder_saddles = [22, 80];  // saddle positions along the case (world Y)
+holder_screws = [40, 70];   // mounting screw positions (world Y)
+holder_screw_z = 12;        // mounting screw height above the table
+holder_plate_t = 4;
+holder_flange_t = 6;         // M3x12 screws: 3.5 mm under the head + wall + nut boss
+holder_post_t = 8;
+holder_flange_h = 18;
+nut_af = 5.7;               // M3 nut across flats (+ clearance)
+nut_h = 2.6;
+
 /* [Button caps] */
 cap_d = 7.0;
 cap_hole_clr = 0.3;
@@ -72,6 +87,7 @@ cap_protrude = 1.6;
 cap_gap = 0.5;        // play between flange and lid underside
 plunger_d = 3.5;
 socket_depth = 1.5;
+cap_flat = 0.9;       // D-flat on symbol caps, keeps them from rotating
 
 $fn = 64;
 eps = 0.01;
@@ -101,6 +117,14 @@ module to_world() {
 // ---------------------------------------------------------------------------
 module rrect(x0, y0, x1, y1, r) {
 	translate([x0 + r, y0 + r]) offset(r = r) square([x1 - x0 - 2 * r, y1 - y0 - 2 * r]);
+}
+
+// Cap cross-section: round, or D-shaped (flat towards +X) for keyed caps.
+module cap_profile(d, keyed) {
+	if (keyed) intersection() {
+		circle(d = d);
+		translate([-d, -d]) square([d + d / 2 - cap_flat, 2 * d]);
+	} else circle(d = d);
 }
 
 module rounded_block(x0, y0, x1, y1, z0, z1, r, er) {
@@ -148,8 +172,12 @@ module lid() {
 		display_window();
 		for (b = buttons)
 			translate([b[0], b[1], inner_h - 1]) {
-				cylinder(d = cap_d + 2 * cap_hole_clr, h = top_t + 2);
-				translate([0, 0, top_t + 1 - 0.6]) cylinder(d1 = cap_d + 2 * cap_hole_clr, d2 = cap_d + 2 * cap_hole_clr + 1.6, h = 0.6 + eps);
+				linear_extrude(top_t + 2) offset(r = cap_hole_clr) cap_profile(cap_d, b[2] > 0);
+				// Chamfered rim on the top face
+				hull() {
+					translate([0, 0, top_t + 1 - 0.6]) linear_extrude(eps) offset(r = cap_hole_clr) cap_profile(cap_d, b[2] > 0);
+					translate([0, 0, top_t + 1]) linear_extrude(eps * 2) offset(r = cap_hole_clr + 0.8) cap_profile(cap_d, b[2] > 0);
+				}
 			}
 		// LED: small light hole with a wide counterbore underneath
 		translate([led_pos[0], led_pos[1], inner_h - 1]) cylinder(d = 3.0, h = top_t + 2);
@@ -198,7 +226,9 @@ module base() {
 				base_cavity();
 			}
 			standoffs();
+			if (holder) holder_nut_bosses();
 		}
+		if (holder) holder_mount_holes();
 		to_world() for (h = pcb_holes) {
 			translate([h[0], h[1], -200]) cylinder(d = screw_d, h = 200);
 			translate([h[0], h[1], -200]) cylinder(d = head_d, h = 200 - pcb_t - seat_below_pcb);
@@ -209,6 +239,82 @@ module base() {
 		// Vent slots in the back wall
 		to_world() for (i = [0 : 6])
 			translate([12 + i * 8, in_y1 - 1, joint_z - 22]) cube([3.2, wall + 2, 16]);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Iron holder: bolted to the right base wall, carries the handpiece by its
+// grip in two saddles; the hot tip points backwards into free air behind
+// the station.
+// ---------------------------------------------------------------------------
+module holder_mount_holes() {
+	for (y = holder_screws) {
+		translate([out_x1 - wall - 6, y, holder_screw_z]) rotate([0, 90, 0]) cylinder(d = screw_d, h = wall + 20);
+		// Hex nut pocket, opening towards the cavity
+		translate([out_x1 - wall - 4 - eps, y, holder_screw_z]) rotate([0, 90, 0])
+			cylinder(d = nut_af / cos(30), h = nut_h + eps, $fn = 6);
+	}
+}
+
+module holder_nut_bosses() {
+	for (y = holder_screws)
+		translate([out_x1 - wall - 4, y, holder_screw_z]) rotate([0, 90, 0]) cylinder(d = 10, h = 4 + eps);
+}
+
+module saddle(y) {
+	cx = out_x1 + holder_offset;
+	w = iron_d + 16;
+	top = holder_axis_z + iron_d / 2 + 3;
+	difference() {
+		union() {
+			translate([cx - w / 2, y - holder_post_t / 2, 0]) cube([w, holder_post_t, top]);
+			// Gusset towards the case flange for stiffness
+			hull() {
+				translate([out_x1, y - holder_post_t / 2, 0]) cube([eps, holder_post_t, holder_flange_h]);
+				translate([cx - w / 2, y - holder_post_t / 2, 0]) cube([eps, holder_post_t, top * 0.6]);
+			}
+		}
+		// U-shaped seat with a flared entry
+		hull() {
+			translate([cx, y, holder_axis_z]) rotate([90, 0, 0]) cylinder(d = iron_d + 1, h = holder_post_t + 2, center = true);
+			translate([cx - (iron_d + 9) / 2, y - holder_post_t / 2 - 1, top + 1]) cube([iron_d + 9, holder_post_t + 2, eps]);
+		}
+	}
+}
+
+module holder_part() {
+	y0 = holder_saddles[0] - 10;
+	y1 = holder_saddles[1] + 8;
+	x1 = out_x1 + holder_offset + iron_d / 2 + 12;
+	difference() {
+		union() {
+			// Foot plate
+			translate([0, 0, 0]) linear_extrude(holder_plate_t) rrect(out_x1, y0, x1, y1, 4);
+			// Flange against the case wall
+			translate([out_x1, holder_screws[0] - 9, 0])
+				cube([holder_flange_t, holder_screws[1] - holder_screws[0] + 18, holder_flange_h]);
+			for (y = holder_saddles) saddle(y);
+		}
+		for (y = holder_screws)
+			translate([out_x1 - 1, y, holder_screw_z]) rotate([0, 90, 0]) {
+				cylinder(d = screw_d, h = holder_flange_t + 2);
+				// Counterbore for the screw head
+				translate([0, 0, 1 + holder_flange_t - 2.5]) cylinder(d = head_d, h = 3);
+			}
+		// Rubber feet, same as under the base
+		for (y = [y0 + 12, y1 - 12])
+			translate([(out_x1 + x1) / 2 + 6, y, -1]) cylinder(d = foot_d, h = foot_depth + 1);
+	}
+}
+
+// Handpiece dummy for the assembly view (grip, front part, tip)
+module iron_dummy() {
+	cx = out_x1 + holder_offset;
+	translate([cx, holder_saddles[0] - 45, holder_axis_z]) rotate([-90, 0, 0]) {
+		color("#334155") cylinder(d = 6, h = 25);
+		color("#1f2937") translate([0, 0, 25]) cylinder(d = iron_d, h = 95);
+		color("#9ca3af") translate([0, 0, 120]) cylinder(d1 = iron_d - 3, d2 = 6, h = 20);
+		color("#d97706") translate([0, 0, 140]) cylinder(d1 = 4, d2 = 1, h = 30);
 	}
 }
 
@@ -238,8 +344,11 @@ module cap(kind) {
 	difference() {
 		union() {
 			cylinder(d = cap_flange_d, h = flange_h);
-			cylinder(d = cap_d, h = cap_len - 0.6);
-			translate([0, 0, cap_len - 0.6]) cylinder(d1 = cap_d, d2 = cap_d - 1.2, h = 0.6);
+			linear_extrude(cap_len - 0.6) cap_profile(cap_d, kind > 0);
+			hull() {
+				translate([0, 0, cap_len - 0.6]) linear_extrude(eps) cap_profile(cap_d, kind > 0);
+				translate([0, 0, cap_len - eps]) linear_extrude(eps) offset(r = -0.6) cap_profile(cap_d, kind > 0);
+			}
 		}
 		translate([0, 0, -eps]) cylinder(d = plunger_d + 0.3, h = socket_depth + eps);
 		if (kind > 0)
@@ -281,6 +390,10 @@ module board_dummy() {
 
 module assembly(explode = 0) {
 	color("#e2e8f0") base();
+	if (holder) {
+		translate([explode * 0.6, 0, 0]) color("#cbd5e1") holder_part();
+		translate([explode * 0.6, 0, explode * 0.4]) iron_dummy();
+	}
 	to_world() {
 		translate([0, 0, explode * 0.5]) board_dummy();
 		translate([0, 0, explode * 1.4]) {
@@ -298,3 +411,4 @@ else if (part == "lid") translate([0, 0, lid_top]) rotate([180, 0, 0]) lid();  /
 else if (part == "base") base();
 else if (part == "caps") caps();
 else if (part == "fitcheck") fitcheck();
+else if (part == "holder") translate([-out_x1, 0, 0]) holder_part();
