@@ -2,3 +2,6 @@
 .vscode/
 /sim
 *.ppm
+web/node_modules/
+web/dist/
+web/public/firmware/

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Maiskolben THT – Flasher</title>
+	<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2v8'/%3E%3Cpath d='M8 10h8l-1 6h-6z'/%3E%3Cpath d='M12 16v6'/%3E%3C/svg%3E">
+	<link rel="stylesheet" href="app.css">
+	<script type="module" src="src/app.js"></script>
+</head>
+<body class="min-h-screen bg-gray-50 font-sans text-gray-800 antialiased dark:bg-neutral-900 dark:text-neutral-200">
+<div x-data="flasher" x-cloak class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
+
+	<!-- Header -->
+	<header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+		<div class="flex items-center gap-x-3">
+			<span class="inline-flex size-11 items-center justify-center rounded-xl bg-blue-600 text-white">
+				<svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v8"/><path d="M8 10h8l-1 6H9z"/><path d="M12 16v6"/></svg>
+			</span>
+			<div>
+				<h1 class="text-xl font-semibold text-gray-900 dark:text-white">Maiskolben THT</h1>
+				<p class="text-sm text-gray-500 dark:text-neutral-400" x-text="t('subtitle')"></p>
+			</div>
+		</div>
+		<label class="flex items-center gap-x-2 text-sm text-gray-500 dark:text-neutral-400">
+			<span x-text="t('language')"></span>
+			<select x-model="lang" class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+				<template x-for="l in languages" :key="l.code">
+					<option :value="l.code" x-text="l.name" :selected="l.code === lang"></option>
+				</template>
+			</select>
+		</label>
+	</header>
+
+	<!-- Browser support -->
+	<div x-show="!supported" class="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-800/10 dark:text-yellow-500" role="alert">
+		<span x-text="t('unsupported')"></span>
+	</div>
+
+	<div class="grid gap-6 lg:grid-cols-5">
+
+		<!-- Flash card -->
+		<section class="flex flex-col rounded-xl border border-gray-200 bg-white shadow-2xs lg:col-span-2 dark:border-neutral-700 dark:bg-neutral-800">
+			<div class="border-b border-gray-200 px-5 py-4 dark:border-neutral-700">
+				<h2 class="font-semibold text-gray-900 dark:text-white" x-text="t('flashTitle')"></h2>
+				<p class="mt-1 text-sm text-gray-500 dark:text-neutral-400" x-text="t('flashDesc')"></p>
+			</div>
+			<div class="flex flex-1 flex-col gap-5 p-5">
+
+				<fieldset>
+					<legend class="mb-2 text-sm font-medium text-gray-800 dark:text-neutral-200" x-text="t('source')"></legend>
+					<div class="space-y-2">
+						<label x-show="manifest" class="flex cursor-pointer items-start gap-x-3 rounded-lg border border-gray-200 p-3 has-checked:border-blue-600 has-checked:bg-blue-50 dark:border-neutral-700 dark:has-checked:border-blue-500 dark:has-checked:bg-blue-500/10">
+							<input type="radio" value="release" x-model="source" class="mt-0.5 size-4 accent-blue-600">
+							<span class="text-sm">
+								<span class="block font-medium" x-text="t('sourceRelease', { version: manifest?.version })"></span>
+								<span class="block text-xs text-gray-500 dark:text-neutral-400" x-text="manifest ? `${manifest.commit} · ${manifest.date} · ${manifest.size} B` : ''"></span>
+							</span>
+						</label>
+						<label class="flex cursor-pointer items-start gap-x-3 rounded-lg border border-gray-200 p-3 has-checked:border-blue-600 has-checked:bg-blue-50 dark:border-neutral-700 dark:has-checked:border-blue-500 dark:has-checked:bg-blue-500/10">
+							<input type="radio" value="file" x-model="source" class="mt-0.5 size-4 accent-blue-600">
+							<span class="min-w-0 flex-1 text-sm">
+								<span class="block font-medium" x-text="t('sourceFile')"></span>
+								<span x-show="source === 'file'" class="mt-2 flex items-center gap-x-2">
+									<label class="inline-flex shrink-0 cursor-pointer items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium shadow-2xs hover:bg-gray-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+										<span x-text="t('chooseFile')"></span>
+										<input type="file" accept=".hex" class="sr-only" @change="pickFile">
+									</label>
+									<span class="truncate text-xs text-gray-500 dark:text-neutral-400" x-text="file ? file.name : t('noFile')"></span>
+								</span>
+							</span>
+						</label>
+					</div>
+				</fieldset>
+
+				<label class="block">
+					<span class="mb-2 block text-sm font-medium" x-text="t('bootloader')"></span>
+					<select x-model="bootloader" class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900">
+						<option value="auto" x-text="t('blAuto')"></option>
+						<option value="old" x-text="t('blOld')"></option>
+						<option value="optiboot" x-text="t('blOptiboot')"></option>
+					</select>
+				</label>
+
+				<label class="flex items-center gap-x-3 text-sm">
+					<input type="checkbox" x-model="verify" class="size-4 rounded accent-blue-600">
+					<span x-text="t('verify')"></span>
+				</label>
+
+				<div class="mt-auto space-y-3">
+					<button type="button" @click="startFlash" :disabled="busy || !supported"
+						class="inline-flex w-full items-center justify-center gap-x-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+						<svg x-show="busy" class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".25" stroke-width="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+						<span x-text="t('flashButton')"></span>
+					</button>
+
+					<div x-show="busy || stage === 'done'">
+						<div class="mb-1 flex justify-between text-xs text-gray-500 dark:text-neutral-400">
+							<span x-text="stageText"></span>
+							<span x-text="`${Math.round(progress * 100)} %`"></span>
+						</div>
+						<div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-neutral-700" role="progressbar" :aria-valuenow="Math.round(progress * 100)" aria-valuemin="0" aria-valuemax="100">
+							<div class="h-full rounded-full bg-blue-600 transition-all duration-150" :style="`width: ${progress * 100}%`"></div>
+						</div>
+					</div>
+
+					<div x-show="result" class="rounded-lg border p-3 text-sm" role="status"
+						:class="resultOk ? 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-900 dark:bg-teal-800/10 dark:text-teal-500' : 'border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-800/10 dark:text-red-500'"
+						x-text="result"></div>
+
+					<details x-show="logLines.length" class="text-xs text-gray-500 dark:text-neutral-400">
+						<summary class="cursor-pointer select-none" x-text="t('log')"></summary>
+						<pre class="mt-2 max-h-40 overflow-auto rounded-lg bg-gray-100 p-3 font-mono dark:bg-neutral-900" x-text="logLines.join('\n')"></pre>
+					</details>
+				</div>
+			</div>
+		</section>
+
+		<!-- Monitor card -->
+		<section class="flex flex-col rounded-xl border border-gray-200 bg-white shadow-2xs lg:col-span-3 dark:border-neutral-700 dark:bg-neutral-800">
+			<div class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-neutral-700">
+				<div>
+					<h2 class="font-semibold text-gray-900 dark:text-white" x-text="t('monitorTitle')"></h2>
+					<p class="mt-1 text-sm text-gray-500 dark:text-neutral-400" x-text="t('monitorDesc')"></p>
+				</div>
+				<button type="button" @click="toggleMonitor" :disabled="busy || !supported"
+					class="inline-flex shrink-0 items-center gap-x-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-2xs disabled:pointer-events-none disabled:opacity-50"
+					:class="monitor ? 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-800' : 'border-transparent bg-blue-600 text-white hover:bg-blue-700'">
+					<span class="size-2 rounded-full" :class="monitor ? 'bg-teal-500' : 'bg-white/70'"></span>
+					<span x-text="monitor ? t('disconnect') : t('connect')"></span>
+				</button>
+			</div>
+
+			<div class="space-y-5 p-5">
+				<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+					<div class="rounded-lg bg-gray-50 p-3 dark:bg-neutral-900">
+						<p class="text-xs text-gray-500 dark:text-neutral-400" x-text="t('temperature')"></p>
+						<p class="mt-1 text-2xl font-semibold text-blue-600 tabular-nums dark:text-blue-500"
+							x-text="live ? (live.temp === null ? t('noTip') : `${live.temp} °C`) : '–'"></p>
+					</div>
+					<div class="rounded-lg bg-gray-50 p-3 dark:bg-neutral-900">
+						<p class="text-xs text-gray-500 dark:text-neutral-400" x-text="t('setpoint')"></p>
+						<p class="mt-1 text-2xl font-semibold tabular-nums" x-text="live ? `${live.set} °C` : '–'"></p>
+					</div>
+					<div class="rounded-lg bg-gray-50 p-3 dark:bg-neutral-900">
+						<p class="text-xs text-gray-500 dark:text-neutral-400" x-text="t('output')"></p>
+						<p class="mt-1 text-2xl font-semibold text-amber-500 tabular-nums" x-text="live ? `${live.output} %` : '–'"></p>
+					</div>
+					<div class="rounded-lg bg-gray-50 p-3 dark:bg-neutral-900">
+						<p class="text-xs text-gray-500 dark:text-neutral-400" x-text="t('state')"></p>
+						<p class="mt-1.5 text-sm font-medium" :class="live?.error ? 'text-red-600 dark:text-red-500' : ''" x-text="stateText"></p>
+					</div>
+				</div>
+
+				<div>
+					<canvas x-ref="chart" class="h-56 w-full" aria-hidden="true"></canvas>
+					<div class="mt-2 flex flex-wrap gap-x-4 text-xs text-gray-500 dark:text-neutral-400">
+						<span class="inline-flex items-center gap-x-1.5"><span class="h-0.5 w-4 rounded bg-blue-600"></span><span x-text="t('temperature')"></span></span>
+						<span class="inline-flex items-center gap-x-1.5"><span class="h-0.5 w-4 rounded bg-gray-400"></span><span x-text="t('setpoint')"></span></span>
+						<span class="inline-flex items-center gap-x-1.5"><span class="h-0.5 w-4 rounded bg-amber-500"></span><span x-text="t('output')"></span></span>
+					</div>
+				</div>
+
+				<div class="flex flex-wrap items-end gap-2">
+					<button type="button" :disabled="!monitor" @click="send(live?.on ? 'O0' : 'O1')"
+						class="inline-flex items-center gap-x-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium shadow-2xs hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+						x-text="live?.on ? t('turnOff') : t('turnOn')"></button>
+					<button type="button" :disabled="!monitor || !live?.on" @click="send(live?.standby ? 'S0' : 'S1')"
+						class="inline-flex items-center gap-x-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium shadow-2xs hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+						x-text="live?.standby ? t('wake') : t('standby')"></button>
+					<button type="button" x-show="live?.error" @click="send('C')"
+						class="inline-flex items-center gap-x-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-100 dark:border-red-900 dark:bg-red-800/10 dark:text-red-500"
+						x-text="t('clearError')"></button>
+					<form class="ms-auto flex items-center gap-x-2" @submit.prevent="applySetpoint">
+						<input type="number" min="200" max="450" step="1" x-model.number="setInput" :disabled="!monitor"
+							class="w-24 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm tabular-nums focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900"
+							:aria-label="t('setpoint')">
+						<span class="text-sm text-gray-500">°C</span>
+						<button type="submit" :disabled="!monitor"
+							class="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:pointer-events-none disabled:opacity-50"
+							x-text="t('applySetpoint')"></button>
+					</form>
+				</div>
+
+				<div class="rounded-lg border border-gray-200 p-4 dark:border-neutral-700">
+					<div class="flex items-start justify-between gap-4">
+						<div>
+							<h3 class="text-sm font-semibold" x-text="t('settleTitle')"></h3>
+							<p class="mt-1 text-xs text-gray-500 dark:text-neutral-400" x-text="t('settleDesc')"></p>
+						</div>
+						<button type="button" :disabled="!monitor || live?.on" @click="recordSettle"
+							class="inline-flex shrink-0 items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium shadow-2xs hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+							x-text="t('settleButton')"></button>
+					</div>
+					<canvas x-ref="settle" class="mt-3 h-32 w-full" aria-hidden="true"></canvas>
+					<p x-show="settleInfo" class="mt-2 text-xs" :class="settleError ? 'text-red-600 dark:text-red-500' : 'text-teal-700 dark:text-teal-500'" x-text="settleInfo"></p>
+				</div>
+			</div>
+		</section>
+	</div>
+
+	<footer class="mt-8 text-center text-xs text-gray-500 dark:text-neutral-500">
+		<p x-text="t('footer')"></p>
+	</footer>
+</div>
+</body>
+</html>

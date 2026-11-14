@@ -24,7 +24,31 @@ The THT board has no voltage dividers on A2–A4 and no standby switch on A1,
 so battery, USB-only and stand detection are not part of this firmware.
 A missing supply shows up as "Not heating".
 
-## Building and flashing
+## Flashing from the browser
+
+The flasher page (GitHub Pages) uploads the current build over Web Serial,
+no toolchain needed: <https://sickdaflip.github.io/maiskolben-tht/>
+
+* Chrome or Edge on a desktop computer (Web Serial is not available in
+  Firefox or Safari).
+* Detects the old Nano bootloader (57600 baud) and Optiboot (115200 baud)
+  automatically and verifies the flash afterwards.
+* A local `.hex` file can be flashed as well.
+* The live monitor plots temperature, setpoint and heater output, offers the
+  basic commands and records the settling trace for choosing `CTRL_BLANK_MS`.
+
+The page is built and deployed by `.github/workflows/firmware.yml` on every
+push to `main`. Pushing a tag such as `v4.0.1` also creates a GitHub release
+with the `.hex` file attached.
+
+Local development:
+
+```sh
+cd web && npm ci && npm run build   # output in web/dist
+npm test                            # STK500 uploader against an emulated bootloader
+```
+
+## Building and flashing with PlatformIO
 
 Requires [PlatformIO](https://platformio.org/) (CLI or VS Code extension).
 

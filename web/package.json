@@ -1,0 +1,15 @@
+{
+  "name": "maiskolben-tht-web",
+  "private": true,
+  "type": "module",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test/flash.test.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "~4.1.0",
+    "alpinejs": "^3.14.0",
+    "tailwindcss": "~4.1.0"
+  }
+}
