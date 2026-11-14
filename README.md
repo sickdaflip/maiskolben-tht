@@ -90,6 +90,11 @@ g++ -std=c++17 -DMAISKOLBEN_SIM -Itools/sim -Isrc \
 Fonts and palette are generated with `python3 -I tools/gen_fonts.py`
 (Pillow and the Inter font family required).
 
+## Enclosure
+
+A 3D printable desk enclosure (OpenSCAD source and STL files) lives in
+[`enclosure/`](enclosure/README.md).
+
 ## License and credits
 
 GNU General Public License v2.0 or later, inherited from the original
