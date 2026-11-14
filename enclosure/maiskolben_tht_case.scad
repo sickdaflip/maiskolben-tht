@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Maiskolben THT (board rev. 1.3c) - 3D printable desk enclosure
 //
-// Two shells plus six button caps:
-//   * lid  - frames the display, carries the button caps, screwed to the PCB
-//   * base - tilted wedge (default 15 deg) with standoffs and ballast space
-// Four M3x16 screws go from below through the base standoffs and the PCB
-// mounting holes into pilot holes in the lid bosses.
+// Screwless: two shells, six button caps and an iron holder.
+//   * base   - tilted wedge (default 15 deg); standoffs with locating pins
+//              hold the PCB, a dovetail channel underneath takes the holder
+//   * lid    - frames the display, guides the caps and snaps onto the base
+//              with four hooks; its bosses clamp the PCB onto the pins
+//   * holder - slides into the dovetail channel from the left or right side
 //
 // Render a single part: openscad -D 'part="lid"' -o lid.stl maiskolben_tht_case.scad
-// Parts: "assembly", "exploded", "lid", "base", "caps", "fitcheck", "holder"
+// Parts: "assembly", "exploded", "lid", "base", "caps", "fitcheck",
+//        "holder_right", "holder_left"
 
 part = "assembly";
 
@@ -53,31 +55,37 @@ tilt = 15;            // display tilt towards the user
 front_h = 10;         // base height at the front edge
 floor_t = 3.0;
 
-/* [Fasteners] */
+/* [PCB pins and snap hooks] */
 boss_d = 5.5;
-pilot_d = 2.6;        // M3 self-tapping into PLA/PETG
-pilot_depth = 10;
 standoff_d = 7.0;
-screw_d = 3.4;
-head_d = 6.4;
-seat_below_pcb = 6.4; // screw head seat, gives M3x16
+pin_d = 2.7;          // PCB mounting holes are 3.0 mm
+pin_len = 4.0;        // reaches into the lid bosses
+pin_socket_d = 3.2;
+hooks = [[-1, 20], [-1, 38], [1, 20], [1, 60]];  // side (-1 left, +1 right), board Y
+hook_w = 8;
+hook_t = 1.8;
+hook_len = 8;         // arm length below the split plane
+hook_barb = 1.0;
 foot_d = 10.5;        // self-adhesive rubber feet
 foot_depth = 1.0;
 
-/* [Iron holder on the right side] */
-holder = true;              // adds mounting holes and nut pockets to the base
-iron_d = 14;                // grip diameter of the handpiece (measure yours)
+/* [Iron holder, slides in from the left or right] */
+holder = true;              // adds the dovetail channel to the base
+// Weller RT tip with a 3.5 mm cable coupler on its plug. The grip saddle
+// sits under the black sleeve, the rear saddle under the coupler; cone and
+// tip point backwards into free air behind the station.
+grip_d = 15.0;              // black sleeve of the RT tip (13.5-16 mm, tapered)
+coupler_d = 9.0;            // cable coupler on the 3.5 mm plug (measure yours)
 holder_offset = 26;         // case wall to iron axis
 holder_axis_z = 42;         // iron axis height above the table
-holder_saddles = [22, 80];  // saddle positions along the case (world Y)
-holder_screws = [40, 70];   // mounting screw positions (world Y)
-holder_screw_z = 12;        // mounting screw height above the table
+holder_saddles = [38, 82];  // world Y: coupler saddle, grip saddle (sleeve center)
 holder_plate_t = 4;
-holder_flange_t = 6;         // M3x12 screws: 3.5 mm under the head + wall + nut boss
 holder_post_t = 8;
-holder_flange_h = 18;
-nut_af = 5.7;               // M3 nut across flats (+ clearance)
-nut_h = 2.6;
+dove_y = 46;                // channel center (world Y)
+dove_w = [16, 22];          // width at the bottom face / at the channel ceiling
+dove_h = 4;
+dove_clr = 0.25;
+tongue_len = 46;            // how far the tongue reaches under the base
 
 /* [Button caps] */
 cap_d = 7.0;
@@ -157,6 +165,30 @@ module jack_notch(j) {
 		rotate([0, 90, 0]) cylinder(d = j[1], h = wall + 2);
 }
 
+// Snap hooks. Local frame: X = 0 is the inner wall face, +X points into the
+// cavity, Z is board Z. place_hook() mirrors the right-hand side.
+hook_catch_z = joint_z - hook_len + 1.6;
+
+module place_hook(k) {
+	if (k[0] < 0) translate([in_x0, k[1], 0]) children();
+	else translate([in_x1, k[1], 0]) mirror([1, 0, 0]) children();
+}
+
+module hook_arm() {
+	zb = joint_z - hook_len;
+	// Root bonded to the lid wall, stops 0.2 mm below the PCB
+	translate([-eps, -hook_w / 2, joint_z]) cube([hook_t + 1.2, hook_w, -pcb_t - 0.2 - joint_z]);
+	// Flexible arm, 0.2 mm clear of the base wall
+	translate([0.2, -hook_w / 2, zb]) cube([hook_t, hook_w, hook_len + 1]);
+	// Barb: ramp on the way in, flat catch face on top
+	rotate([90, 0, 0]) linear_extrude(hook_w, center = true)
+		polygon([[0.2 + hook_t, zb], [0.2, zb], [0.2 - hook_barb, hook_catch_z], [0.2 + hook_t, hook_catch_z]]);
+}
+
+module hook_window() {
+	translate([-wall - 1, -(hook_w + 1) / 2, hook_catch_z - 2.8]) cube([wall + 1 + eps, hook_w + 1, 2.8]);
+}
+
 module lid() {
 	difference() {
 		union() {
@@ -167,8 +199,9 @@ module lid() {
 						rrect(in_x0, in_y0, in_x1, in_y1, corner_r - wall);
 			}
 			for (h = pcb_holes) translate([h[0], h[1], 0]) cylinder(d = boss_d, h = inner_h + eps);
+			for (k = hooks) place_hook(k) hook_arm();
 		}
-		for (h = pcb_holes) translate([h[0], h[1], -1]) cylinder(d = pilot_d, h = pilot_depth + 1);
+		for (h = pcb_holes) translate([h[0], h[1], -1]) cylinder(d = pin_socket_d, h = pin_len + 1.5);
 		display_window();
 		for (b = buttons)
 			translate([b[0], b[1], inner_h - 1]) {
@@ -213,6 +246,24 @@ module standoffs() {
 		to_world() for (h = pcb_holes) translate([h[0], h[1], -200]) cylinder(d = standoff_d, h = 200 - pcb_t);
 		ground_slab();
 	}
+	// Locating pins through the PCB holes into the lid bosses
+	to_world() for (h = pcb_holes) translate([h[0], h[1], -pcb_t - eps]) {
+		cylinder(d = pin_d, h = pcb_t + pin_len - 0.6);
+		translate([0, 0, pcb_t + pin_len - 0.6]) cylinder(d1 = pin_d, d2 = pin_d - 1, h = 0.6);
+	}
+}
+
+// Dovetail channel across the whole base, open on both sides.
+module dovetail_profile(w0, w1, h) {
+	polygon([[-w0 / 2, -1], [w0 / 2, -1], [w0 / 2, 0], [w1 / 2, h], [-w1 / 2, h], [-w0 / 2, 0]]);
+}
+
+module dove_channel() {
+	translate([out_x0 - 1, dove_y, 0]) rotate([90, 0, 90])
+		linear_extrude(out_x1 - out_x0 + 2) dovetail_profile(dove_w[0], dove_w[1], dove_h);
+	// Detent dimples for a holder inserted from either side
+	for (x = [out_x0 + tongue_len - 4, out_x1 - tongue_len + 4])
+		translate([x, dove_y, dove_h]) sphere(r = 1.6, $fn = 24);
 }
 
 // World Y of a board-frame Y on the table surface.
@@ -226,13 +277,15 @@ module base() {
 				base_cavity();
 			}
 			standoffs();
-			if (holder) holder_nut_bosses();
+			// Thicker floor above the dovetail channel
+			if (holder) intersection() {
+				base_outer();
+				translate([-100, dove_y - 16, 0]) cube([300, 32, dove_h + 4]);
+			}
 		}
-		if (holder) holder_mount_holes();
-		to_world() for (h = pcb_holes) {
-			translate([h[0], h[1], -200]) cylinder(d = screw_d, h = 200);
-			translate([h[0], h[1], -200]) cylinder(d = head_d, h = 200 - pcb_t - seat_below_pcb);
-		}
+		if (holder) dove_channel();
+		// Snap hook windows
+		to_world() for (k = hooks) place_hook(k) hook_window();
 		// Rubber feet
 		for (x = [20, pcb_w - 20], y = [ground_y(out_y0 + 12), ground_y(out_y1 - 12)])
 			translate([x, y, -1]) cylinder(d = foot_d, h = foot_depth + 1);
@@ -243,78 +296,96 @@ module base() {
 }
 
 // ---------------------------------------------------------------------------
-// Iron holder: bolted to the right base wall, carries the handpiece by its
-// grip in two saddles; the hot tip points backwards into free air behind
-// the station.
+// Iron holder: a dovetail tongue slides into the channel under the base,
+// the grip rests in two saddles and the hot tip points backwards into free
+// air behind the station. Built for the right side; holder_left mirrors it.
 // ---------------------------------------------------------------------------
-module holder_mount_holes() {
-	for (y = holder_screws) {
-		translate([out_x1 - wall - 6, y, holder_screw_z]) rotate([0, 90, 0]) cylinder(d = screw_d, h = wall + 20);
-		// Hex nut pocket, opening towards the cavity
-		translate([out_x1 - wall - 4 - eps, y, holder_screw_z]) rotate([0, 90, 0])
-			cylinder(d = nut_af / cos(30), h = nut_h + eps, $fn = 6);
-	}
-}
-
-module holder_nut_bosses() {
-	for (y = holder_screws)
-		translate([out_x1 - wall - 4, y, holder_screw_z]) rotate([0, 90, 0]) cylinder(d = 10, h = 4 + eps);
-}
-
-module saddle(y) {
+module saddle(y, d) {
 	cx = out_x1 + holder_offset;
-	w = iron_d + 16;
-	top = holder_axis_z + iron_d / 2 + 3;
+	w = grip_d + 16;
+	top = holder_axis_z + d / 2 + 3;
 	difference() {
 		union() {
 			translate([cx - w / 2, y - holder_post_t / 2, 0]) cube([w, holder_post_t, top]);
-			// Gusset towards the case flange for stiffness
 			hull() {
-				translate([out_x1, y - holder_post_t / 2, 0]) cube([eps, holder_post_t, holder_flange_h]);
+				translate([out_x1 + 0.5, y - holder_post_t / 2, 0]) cube([eps, holder_post_t, holder_plate_t + 6]);
 				translate([cx - w / 2, y - holder_post_t / 2, 0]) cube([eps, holder_post_t, top * 0.6]);
 			}
 		}
 		// U-shaped seat with a flared entry
 		hull() {
-			translate([cx, y, holder_axis_z]) rotate([90, 0, 0]) cylinder(d = iron_d + 1, h = holder_post_t + 2, center = true);
-			translate([cx - (iron_d + 9) / 2, y - holder_post_t / 2 - 1, top + 1]) cube([iron_d + 9, holder_post_t + 2, eps]);
+			translate([cx, y, holder_axis_z]) rotate([90, 0, 0]) cylinder(d = d + 1, h = holder_post_t + 2, center = true);
+			translate([cx - (d + 9) / 2, y - holder_post_t / 2 - 1, top + 1]) cube([d + 9, holder_post_t + 2, eps]);
 		}
+	}
+}
+
+module tongue() {
+	xt = out_x1 - tongue_len;  // tip, under the base
+	th = dove_h - dove_clr;
+	difference() {
+		translate([xt, dove_y, 0]) rotate([90, 0, 90])
+			linear_extrude(tongue_len + 1)
+				intersection() {
+					offset(delta = -dove_clr) dovetail_profile(dove_w[0], dove_w[1], dove_h);
+					translate([-50, 0]) square([100, th]);
+				}
+		// Slot around the spring finger
+		translate([xt + 1, dove_y - 4, -1]) cube([18, 8, dove_h + 2]);
+	}
+	// Spring finger with a detent bump near its free end
+	translate([xt + 2, dove_y - 3, th - 1.6]) cube([17 + eps, 6, 1.6]);
+	intersection() {
+		translate([xt + 4, dove_y, th]) sphere(r = 1.4, $fn = 24);
+		translate([xt + 2, dove_y - 3, th]) cube([4, 6, 1]);
 	}
 }
 
 module holder_part() {
 	y0 = holder_saddles[0] - 10;
 	y1 = holder_saddles[1] + 8;
-	x1 = out_x1 + holder_offset + iron_d / 2 + 12;
+	x1 = out_x1 + holder_offset + grip_d / 2 + 12;
 	difference() {
 		union() {
-			// Foot plate
-			translate([0, 0, 0]) linear_extrude(holder_plate_t) rrect(out_x1, y0, x1, y1, 4);
-			// Flange against the case wall
-			translate([out_x1, holder_screws[0] - 9, 0])
-				cube([holder_flange_t, holder_screws[1] - holder_screws[0] + 18, holder_flange_h]);
-			for (y = holder_saddles) saddle(y);
+			linear_extrude(holder_plate_t) rrect(out_x1 + 0.5, y0, x1, y1, 4);
+			tongue();
+			saddle(holder_saddles[0], coupler_d);
+			saddle(holder_saddles[1], grip_d);
 		}
-		for (y = holder_screws)
-			translate([out_x1 - 1, y, holder_screw_z]) rotate([0, 90, 0]) {
-				cylinder(d = screw_d, h = holder_flange_t + 2);
-				// Counterbore for the screw head
-				translate([0, 0, 1 + holder_flange_t - 2.5]) cylinder(d = head_d, h = 3);
-			}
 		// Rubber feet, same as under the base
 		for (y = [y0 + 12, y1 - 12])
 			translate([(out_x1 + x1) / 2 + 6, y, -1]) cylinder(d = foot_d, h = foot_depth + 1);
 	}
 }
 
-// Handpiece dummy for the assembly view (grip, front part, tip)
+module holder_left() {
+	translate([out_x0 + out_x1, 0, 0]) mirror([1, 0, 0]) holder_part();
+}
+
+// Weller RT tip with cable coupler, for the assembly views only.
+// Lengths measured from a product photo, scaled by the 3.5 mm plug.
 module iron_dummy() {
-	cx = out_x1 + holder_offset;
-	translate([cx, holder_saddles[0] - 45, holder_axis_z]) rotate([-90, 0, 0]) {
-		color("#334155") cylinder(d = 6, h = 25);
-		color("#1f2937") translate([0, 0, 25]) cylinder(d = iron_d, h = 95);
-		color("#9ca3af") translate([0, 0, 120]) cylinder(d1 = iron_d - 3, d2 = 6, h = 20);
-		color("#d97706") translate([0, 0, 140]) cylinder(d1 = 4, d2 = 1, h = 30);
+	chrome = "#d4d4d8";
+	nickel = "#a1a1aa";
+	rubber = "#18181b";
+	sleeve_front = holder_saddles[1] + 19.5;
+	sleeve_rear = holder_saddles[1] - 19.5;
+	translate([out_x1 + holder_offset, 0, holder_axis_z]) rotate([-90, 0, 0]) {
+		// Cable and coupler
+		color("#27272a") translate([0, 0, sleeve_rear - 11.6 - 25 - 60]) cylinder(d = 4, h = 62);
+		color("#3f3f46") translate([0, 0, sleeve_rear - 11.6 - 25]) cylinder(d = coupler_d, h = 25);
+		// Ferrule
+		color(nickel) translate([0, 0, sleeve_rear - 11.6]) cylinder(d = 9.7, h = 11.6);
+		// Ribbed grip sleeve, tapered towards the plug
+		color(rubber) translate([0, 0, sleeve_rear]) cylinder(d1 = 13.6, d2 = 15.9, h = 39);
+		color("#27272a") for (z = [3 : 3 : 36])
+			translate([0, 0, sleeve_rear + z]) cylinder(d = 13.9 + z * 0.059, h = 0.6);
+		// Cone, collar, shaft and working tip
+		color(chrome) translate([0, 0, sleeve_front]) cylinder(d1 = 14.5, d2 = 2.6, h = 12);
+		color(chrome) translate([0, 0, sleeve_front + 12]) cylinder(d = 2.4, h = 3);
+		color(chrome) translate([0, 0, sleeve_front + 15]) cylinder(d = 1.2, h = 12.4);
+		color(chrome) translate([0, 0, sleeve_front + 27.4]) cylinder(d = 2.5, h = 15.6);
+		color(chrome) translate([0, 0, sleeve_front + 43]) cylinder(d1 = 2.5, d2 = 0.3, h = 6.6);
 	}
 }
 
@@ -391,8 +462,8 @@ module board_dummy() {
 module assembly(explode = 0) {
 	color("#e2e8f0") base();
 	if (holder) {
-		translate([explode * 0.6, 0, 0]) color("#cbd5e1") holder_part();
-		translate([explode * 0.6, 0, explode * 0.4]) iron_dummy();
+		translate([explode * 1.2, 0, 0]) color("#cbd5e1") holder_part();
+		translate([explode * 1.2, 0, explode * 0.4]) iron_dummy();
 	}
 	to_world() {
 		translate([0, 0, explode * 0.5]) board_dummy();
@@ -404,6 +475,14 @@ module assembly(explode = 0) {
 	}
 }
 
+// All printed parts in print orientation (preview image)
+module plate() {
+	color("#e2e8f0") translate([0, 0, 0]) base();
+	color("#334155") translate([100, 0, lid_top]) rotate([180, 0, 0]) translate([0, -out_y1 - out_y0, 0]) lid();
+	color("#cbd5e1") translate([200 - out_x1 + tongue_len, -10, 0]) holder_part();
+	color("#94a3b8") translate([110, -40, 0]) caps();
+}
+
 // ---------------------------------------------------------------------------
 if (part == "assembly") assembly();
 else if (part == "exploded") assembly(40);
@@ -411,4 +490,11 @@ else if (part == "lid") translate([0, 0, lid_top]) rotate([180, 0, 0]) lid();  /
 else if (part == "base") base();
 else if (part == "caps") caps();
 else if (part == "fitcheck") fitcheck();
-else if (part == "holder") translate([-out_x1, 0, 0]) holder_part();
+else if (part == "plate") plate();
+else if (part == "bottom") {  // preview: holder half pulled out to show the channel
+	color("#e2e8f0") base();
+	to_world() color("#334155") lid();
+	translate([28, 0, 0]) { color("#cbd5e1") holder_part(); iron_dummy(); }
+}
+else if (part == "holder_right") translate([-out_x1 + tongue_len, 0, 0]) holder_part();
+else if (part == "holder_left") translate([-out_x0 - tongue_len, 0, 0]) holder_left();
