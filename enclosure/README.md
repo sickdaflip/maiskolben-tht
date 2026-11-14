@@ -43,6 +43,8 @@ verify that the display window and the six button holes line up. The values
 to adjust are at the top of the `.scad` file:
 
 * `display_center` – active area center in board coordinates
+* `usb_z` – height of the Nano's USB socket center above the PCB
+  (default 12 mm, Nano on female headers)
 * `inner_h` – free height under the lid (default 15 mm, enough for a Nano on
   female headers including the USB socket)
 * `button_top_z` – tactile plunger height (13 mm switches, measured)
@@ -61,7 +63,12 @@ The design assumes the LM7805 is not fitted (12 V supply, SJ1 bridged).
    turned by 180° from the left, until the detent clicks.
 
 To open the case, push the hooks inwards through the side windows with a
-small screwdriver. USB is only reachable with the lid removed.
+small screwdriver.
+
+The Nano's mini-USB socket is reachable through an opening in the right lid
+wall (11 × 7.5 mm, fits common plugs). With the holder on the right side, a
+USB cable gets in the way of the tip in the holder: slide the holder out
+while flashing or mount it on the left.
 
 ## Export
 

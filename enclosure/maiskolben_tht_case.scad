@@ -40,6 +40,12 @@ buttons = [
 ];
 led_pos = [63.959, 18.58];
 
+/* [USB access to the Nano (mini-B socket faces the right wall)] */
+usb = true;
+usb_pos = [60.3, 69.3];       // socket mouth X, socket center Y (board coordinates)
+usb_z = 12.0;                 // socket center above the PCB top (Nano on female headers)
+usb_plug = [11.0, 7.5];       // plug overmold width and height
+
 /* [Jacks on the left edge: y center, notch width, notch top z] */
 dc_jack = [68.35, 11.0, 12.5];
 tip_jack = [49.8, 9.0, 8.0];
@@ -191,6 +197,17 @@ module hook_window() {
 	translate([-wall - 1, -(hook_w + 1) / 2, hook_catch_z - 2.8]) cube([wall + 1 + eps, hook_w + 1, 2.8]);
 }
 
+// The rear right boss would block the USB plug: with USB access enabled it
+// moves 3 mm towards the back wall and presses the PCB next to the hole.
+function usb_moved(i) = usb && i == 3;
+function boss_pos(i) = usb_moved(i) ? [pcb_holes[i][0], pcb_holes[i][1] + 3, 0] : [pcb_holes[i][0], pcb_holes[i][1], 0];
+
+module usb_channel() {
+	translate([usb_pos[0] - 0.5, usb_pos[1], usb_z]) rotate([0, 90, 0])
+		linear_extrude(out_x1 - usb_pos[0] + 2)
+			offset(r = 1.5) square([usb_plug[1] - 3, usb_plug[0] - 3], center = true);
+}
+
 module lid() {
 	difference() {
 		union() {
@@ -200,10 +217,12 @@ module lid() {
 					linear_extrude(inner_h - joint_z + 1)
 						rrect(in_x0, in_y0, in_x1, in_y1, corner_r - wall);
 			}
-			for (h = pcb_holes) translate([h[0], h[1], 0]) cylinder(d = boss_d, h = inner_h + eps);
+			for (i = [0 : 3]) translate(boss_pos(i)) cylinder(d = boss_d, h = inner_h + eps);
 			for (k = hooks) place_hook(k) hook_arm();
 		}
-		for (h = pcb_holes) translate([h[0], h[1], -1]) cylinder(d = pin_socket_d, h = pin_len + 1.5);
+		for (i = [0 : 3]) if (!usb_moved(i))
+			translate([pcb_holes[i][0], pcb_holes[i][1], -1]) cylinder(d = pin_socket_d, h = pin_len + 1.5);
+		if (usb) usb_channel();
 		display_window();
 		for (b = buttons)
 			translate([b[0], b[1], inner_h - 1]) {
@@ -249,9 +268,11 @@ module standoffs() {
 		ground_slab();
 	}
 	// Locating pins through the PCB holes into the lid bosses
-	to_world() for (h = pcb_holes) translate([h[0], h[1], -pcb_t - eps]) {
-		cylinder(d = pin_d, h = pcb_t + pin_len - 0.6);
-		translate([0, 0, pcb_t + pin_len - 0.6]) cylinder(d1 = pin_d, d2 = pin_d - 1, h = 0.6);
+	to_world() for (i = [0 : 3]) translate([pcb_holes[i][0], pcb_holes[i][1], -pcb_t - eps]) {
+		// The pin under the moved boss ends flush with the PCB top
+		len = usb_moved(i) ? -0.2 : pin_len;
+		cylinder(d = pin_d, h = pcb_t + len - 0.6);
+		translate([0, 0, pcb_t + len - 0.6]) cylinder(d1 = pin_d, d2 = pin_d - 1, h = 0.6);
 	}
 }
 
