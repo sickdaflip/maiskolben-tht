@@ -43,7 +43,7 @@ led_pos = [63.959, 18.58];
 /* [USB access to the Nano (mini-B socket faces the right wall)] */
 usb = true;
 usb_pos = [60.3, 69.3];       // socket mouth X, socket center Y (board coordinates)
-usb_z = 12.0;                 // socket center above the PCB top (Nano on female headers)
+usb_z = 11.5;                 // socket center above the PCB top (Nano top measured at 13-14 mm)
 usb_plug = [11.0, 7.5];       // plug overmold width and height
 
 /* [Jacks on the left edge: y center, notch width, notch top z] */
@@ -472,7 +472,7 @@ module board_dummy() {
 	}
 	color("#1565c0") translate([6.92, 14.9, 8.5]) cube([53.34, 45, 1.6]);
 	color("#0b1220") translate([display_center[0] - 23.3, display_center[1] - 17.3, 10.1]) cube([46.6, 34.6, display_top_z - 10.1]);
-	color("#1565c0") translate([15.85, 60.41, 6]) cube([44.45, 17.78, 1.6]);
+	color("#1565c0") translate([15.85, 60.41, 8]) cube([44.45, 17.78, 1.6]);
 	for (b = buttons) color("#222") translate([b[0] - 3, b[1] - 3, 0]) cube([6, 6, 3.5]);
 	color("#333") translate([-2.9, 63.85, 0]) cube([13.6, 9, 11]);
 	color("#333") translate([-3.6, 46.8, 0]) cube([17.9, 6, 6]);

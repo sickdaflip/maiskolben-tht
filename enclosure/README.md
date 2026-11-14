@@ -44,7 +44,7 @@ to adjust are at the top of the `.scad` file:
 
 * `display_center` – active area center in board coordinates
 * `usb_z` – height of the Nano's USB socket center above the PCB
-  (default 12 mm, Nano on female headers)
+  (default 11.5 mm: Nano top at 13–14 mm above the main PCB)
 * `inner_h` – free height under the lid (default 15 mm, enough for a Nano on
   female headers including the USB socket)
 * `button_top_z` – tactile plunger height (13 mm switches, measured)
